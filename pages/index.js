@@ -4,10 +4,11 @@ import { useRouter } from 'next/router'
 import { ethers } from 'ethers'
 
 import useWeb3 from '../lib/useWeb3'
+import { getArbitrators } from '../lib/db/queries'
 import CentralizedArbitrator from '../smart-contract-abi/CentralizedAppealableArbitrator.json'
 import { Button } from '../components/Button'
 import { SelectNetwork } from '../components/SelectNetwork'
-import { NETWORKS_LIST, CHAINS_ID_TO_NETWORKS_LIST } from '../utils/networksList'
+import { NETWORKS_LIST, CHAINS_ID_TO_NETWORKS_LIST } from '../constants/networksList'
 
 export default function Home({ arbitrators }) {
   const router = useRouter()
@@ -28,16 +29,14 @@ export default function Home({ arbitrators }) {
   const [isDisabledButton, setIsDisabledButton] = useState(true)
   const [isLoading, setIsLoading]  = useState(false)
 
-  const NEXT_PUBLIC_KEY_DEPLOYER = process.env.NEXT_PUBLIC_KEY_DEPLOYER
-  const NEXT_PUBLIC_PRIVATE_KEY_DEPLOYER = process.env.NEXT_PUBLIC_PRIVATE_KEY_DEPLOYER
-  const NEXT_PUBLIC_GOERLI_PROVIDER_URL = process.env.NEXT_PUBLIC_GOERLI_PROVIDER_URL
-  const NEXT_PUBLIC_SOKOL_PROVIDER_URL = process.env.NEXT_PUBLIC_SOKOL_PROVIDER_URL
-  const NEXT_PUBLIC_MUMBAI_PROVIDER_URL = process.env.NEXT_PUBLIC_MUMBAI_PROVIDER_URL
-  const NEXT_PUBLIC_HOST_URL = process.env.NEXT_PUBLIC_HOST_URL
+  const PRIVATE_KEY_DEPLOYER = process.env.NEXT_PUBLIC_PRIVATE_KEY_DEPLOYER
+  const GOERLI_PROVIDER_URL = process.env.NEXT_PUBLIC_GOERLI_PROVIDER_URL
+  const SOKOL_PROVIDER_URL = process.env.NEXT_PUBLIC_SOKOL_PROVIDER_URL
+  const MUMBAI_PROVIDER_URL = process.env.NEXT_PUBLIC_MUMBAI_PROVIDER_URL
 
   // refresh props!
   const refreshData = () => {
-    router.replace(router.asPath);
+    router.replace(router.asPath)
   }
 
   useEffect(() => {
@@ -52,7 +51,7 @@ export default function Home({ arbitrators }) {
   }, [accounts, chainIdUsed])
 
   const createArbitrator = async arbitrator => {
-    const res = await fetch(`${NEXT_PUBLIC_HOST_URL}/api/arbitrator`, {
+    const res = await fetch(`/api/arbitrator`, {
       method: 'POST',
       headers: {
         "Content-Type": "application/json",
@@ -83,9 +82,9 @@ export default function Home({ arbitrators }) {
     if (arbitratorPriceEth === '' || rulingTimeSeconds === '') {
       return
     }
-    const provider = new ethers.providers.JsonRpcProvider(eval(`NEXT_PUBLIC_${networkSelected.toUpperCase()}_PROVIDER_URL`))
+    const provider = new ethers.providers.JsonRpcProvider(eval(`${networkSelected.toUpperCase()}_PROVIDER_URL`))
 
-    const signer = new ethers.Wallet(NEXT_PUBLIC_PRIVATE_KEY_DEPLOYER, provider)
+    const signer = new ethers.Wallet(PRIVATE_KEY_DEPLOYER, provider)
 
     const arbitratorPriceWei = BigInt(Number(ethers.utils.parseEther(arbitratorPriceEth))).toString()
  
@@ -105,7 +104,7 @@ export default function Home({ arbitrators }) {
       arbitrator_description: arbitratorDescription
     }
 
-    const { status } = await createArbitrator(arbitrator)
+    const { status } = createArbitrator(arbitrator)
     if (status < 300) refreshData()
   }
 
@@ -157,7 +156,7 @@ export default function Home({ arbitrators }) {
             </div> 
           </div>
           <div className="w-screen pb-3 mr-[30%]">
-            <label htmlFor="supply" className="block text-xs text-[#2B2B2B]">Rulling Time (seconds)</label>
+            <label htmlFor="supply" className="block text-xs text-[#2B2B2B]">Ruling Time (seconds)</label>
             <div className="flex mt-1 relative rounded-md">
               <input
                 type="text"
@@ -186,12 +185,14 @@ export default function Home({ arbitrators }) {
                 content={isLoading ? (<><svg className="animate-spin -ml-6 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Generate Arbitrator</>) : "Submit"}
                 isDisabled={isDisabledButton}
               />
-            : <Button
-                className="inline-flex justify-center w-[250px] rounded-md border border-transparent shadow-sm px-10 py-2 bg-blue-500 text-base font-medium text-white hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm"
-                action={handleNetworkSwitch}
-                content={`Switch network ${networkSelected}`}
-                isDisabled={isDisabledButton}
-              />
+            : isConnectedWeb3
+              ? <Button
+                  className="inline-flex justify-center w-[250px] rounded-md border border-transparent shadow-sm px-10 py-2 bg-blue-500 text-base font-medium text-white hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm"
+                  action={handleNetworkSwitch}
+                  content={`Switch network ${networkSelected}`}
+                  isDisabled={isDisabledButton}
+                />
+              : ''
           }
         </div>
         <div className="p-5">
@@ -217,7 +218,7 @@ export default function Home({ arbitrators }) {
                 </tr>
               </thead>
               <tbody className="text-sm divide-y divide-gray-100">
-                {arbitrators.map((arbitrator, i) => 
+                {arbitrators && arbitrators.length > 0 && arbitrators.map((arbitrator, i) => 
                   <tr key={i}>
                     <td className="p-2 whitespace-nowrap">
                       <div className="flex items-center">
@@ -269,15 +270,12 @@ export default function Home({ arbitrators }) {
   )
 }
 
-export const getServerSideProps = async context => {
-  const NEXT_PUBLIC_HOST_URL = process.env.NEXT_PUBLIC_HOST_URL
-
-  const res = await fetch(`${NEXT_PUBLIC_HOST_URL}/api/arbitrator`)
-  const receipt = await res.json()
-
-  const { status, arbitrators } = receipt
+export const getServerSideProps = async () => {
+  const arbitrators = await getArbitrators()
 
   return {
-    props: { status, arbitrators }
+    props: {
+      arbitrators: JSON.parse(JSON.stringify(arbitrators)),
+    },
   }
 }

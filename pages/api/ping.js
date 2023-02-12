@@ -1,4 +1,4 @@
-import { db } from '../../utils/database'
+import { db } from '../../constants/database'
 
 
 export default async function handler(req, res) {
