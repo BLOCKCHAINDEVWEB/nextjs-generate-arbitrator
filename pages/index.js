@@ -226,8 +226,7 @@ export default function Home({ arbitrators }) {
                             href={`${NETWORKS_LIST[arbitrator.arbitrator_network].blockExplorerUrls}/address/${arbitrator.contract_address}`}
                             className="underline text-blue-800 mr-3"
                             target="_blank"
-                            rel="noreferrer"
-                            rel="noopener"
+                            rel="noopener noreferrer"
                           >
                             ↗️
                           </a>
