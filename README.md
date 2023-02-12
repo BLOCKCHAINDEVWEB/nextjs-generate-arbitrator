@@ -14,10 +14,9 @@ cp .env.sample .env
 
 1. Complete your .env file with variables environnement keys of project:  
 ```text
-NEXT_PUBLIC_NETWORK_WHITELIST=goerli,sokol,mumbai
+NEXT_PUBLIC_NETWORKS_WHITELIST=goerli,sokol,mumbai
 NEXT_PUBLIC_KEY_DEPLOYER=0x1474CfFA8f8E1B48a37543510de18bC8Cc835406
 NEXT_PUBLIC_PRIVATE_KEY_DEPLOYER=927f9118...
-NEXT_PUBLIC_HOST_URL=http://localhost:3000
 
 # Provider Urls
 NEXT_PUBLIC_GOERLI_PROVIDER_URL=https://goerli.infura.io/v3/ed660...
