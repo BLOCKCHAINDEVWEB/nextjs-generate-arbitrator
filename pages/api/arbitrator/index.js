@@ -1,4 +1,3 @@
-import { db } from '../../../lib/db/conf'
 import { setArbitrators } from '../../../lib/db/queries'
 
 export default async function handler(req, res) {
